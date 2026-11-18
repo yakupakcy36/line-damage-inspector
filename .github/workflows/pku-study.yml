@@ -1,0 +1,30 @@
+name: PKU grouped study
+on:
+  push:
+    branches: [study/pcb-dataset-2]
+    paths: ['studies/pku/**', '.github/workflows/pku-study.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Download dataset on runner
+        run: |
+          curl -fLsS --retry 3 'https://api.kaggle.com/api/v1/datasets/download/akhatova/pcb-defects?datasetVersionNumber=1' -o /tmp/pku.zip
+          sha256sum /tmp/pku.zip
+          unzip -q /tmp/pku.zip -d /tmp/pku
+      - run: python studies/pku/study.py /tmp/pku results
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pku-grouped-study
+          path: results/
