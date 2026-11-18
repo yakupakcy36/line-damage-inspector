@@ -14,7 +14,7 @@ def iou(a, b):
     return intersection / (area(a) + area(b) - intersection)
 
 
-def evaluate(root):
+def evaluate(root, detector=inspect):
     tp = predictions = labels = rejected = missed_boards = 0
     rows = (root / "test.txt").read_text().splitlines()
     if len(rows) != 500:
@@ -24,7 +24,7 @@ def evaluate(root):
         base = (root / sample).with_suffix("")
         reference = cv2.imread(str(base) + "_temp.jpg", 0)
         image = cv2.imread(str(base) + "_test.jpg", 0)
-        result = inspect(reference, image)
+        result = detector(reference, image)
         boxes = result["boxes"]
         truth = []
         for line in (root / annotation).read_text().splitlines():
