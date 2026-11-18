@@ -21,11 +21,12 @@ jobs:
       - name: Download dataset on runner
         run: |
           curl -fLsS --retry 3 'https://api.kaggle.com/v1/datasets/download/akhatova/pcb-defects' -o /tmp/pku.zip
-          sha256sum /tmp/pku.zip
+          echo 'e3afaf19c897816718978051b257570bb3a4876f9458bf9557f8a7eb38cb23d2  /tmp/pku.zip' | sha256sum -c
           unzip -q /tmp/pku.zip -d /tmp/pku
-      - run: python studies/pku/study.py /tmp/pku results
+      - run: python studies/pku/coverage.py /tmp/pku | tee coverage.jsonl
+        shell: bash
       - uses: actions/upload-artifact@v4
         with:
-          name: pku-grouped-study
-          path: results/
+          name: pku-proposal-coverage
+          path: coverage.jsonl
 

@@ -1,5 +1,8 @@
 name: Inspect and benchmark
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches-ignore: [study/pcb-dataset-2]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
