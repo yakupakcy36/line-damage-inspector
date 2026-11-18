@@ -40,15 +40,19 @@ def prepare(root):
     return groups
 
 
+def fit(rows, name):
+    x = np.concatenate([r[0] for r in rows])
+    y = np.concatenate([r[2][name][1] for r in rows])
+    return ExtraTreesClassifier(n_estimators=64, min_samples_leaf=4, class_weight="balanced",
+                                random_state=19, n_jobs=2).fit(x,y)
+
+
 def run(root):
     groups = prepare(root)
     for name in ("original","expanded"):
         for holdout, held_rows in sorted(groups.items()):
             fitting = [r for g,rows in groups.items() if g != holdout for r in rows]
-            x = np.concatenate([r[0] for r in fitting])
-            y = np.concatenate([r[2][name][1] for r in fitting])
-            model = ExtraTreesClassifier(n_estimators=64, min_samples_leaf=4, class_weight="balanced",
-                                         random_state=19, n_jobs=2).fit(x,y)
+            model = fit(fitting,name)
             records = [(variants[name][0], model.predict_proba(features)[:,1] if len(features) else [], truth)
                        for features,truth,variants in held_rows]
             print(json.dumps(dict(variant=name, held=holdout, threshold=.5, **metrics(records,.5))),flush=True)
