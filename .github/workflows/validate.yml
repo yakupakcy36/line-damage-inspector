@@ -5,7 +5,7 @@ permissions:
 jobs:
   benchmark:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,10 +37,18 @@ jobs:
           from inspection import inspect
           print(json.dumps(evaluate(Path("dataset/PCBData"), partial(inspect, register=False))))
           PY
+      - run: python audit.py
+      - name: Stage and verify the standalone package
+        shell: bash
+        run: |
+          mkdir "$RUNNER_TEMP/pcb-inspector"
+          cp pcb.skops report.json learned-report.json group-validation.json learned.py inspection.py evaluate.py requirements.txt README.md "$RUNNER_TEMP/pcb-inspector/"
+          sample=$(awk 'NR==1 {print $1}' dataset/PCBData/trainval.txt)
+          base="$PWD/dataset/PCBData/${sample%.*}"
+          cd "$RUNNER_TEMP/pcb-inspector"
+          python learned.py predict pcb.skops "${base}_temp.jpg" "${base}_test.jpg" > "$RUNNER_TEMP/prediction.json"
+          python -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["status"] == "suspect" and p["boxes"]' "$RUNNER_TEMP/prediction.json"
       - uses: actions/upload-artifact@v4
         with:
           name: pcb-inspector
-          path: |
-            pcb.skops
-            report.json
-            learned-report.json
+          path: ${{ runner.temp }}/pcb-inspector/

@@ -45,11 +45,15 @@ def candidates(reference, image):
 
 
 def train(root):
-    xs, ys, offsets = [], [], []
     rows = (root / "trainval.txt").read_text().splitlines()
     test_ids = {line.split()[0] for line in (root / "test.txt").read_text().splitlines()}
     if len(rows) != 1000 or any(row.split()[0] in test_ids for row in rows):
         raise ValueError("expected disjoint official splits")
+    return train_rows(root, rows)
+
+
+def train_rows(root, rows):
+    xs, ys, offsets = [], [], []
     for row in rows:
         reference, image, truth = read_pair(root, row)
         result, matrix = candidates(reference, image)

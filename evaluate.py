@@ -16,13 +16,17 @@ def iou(a, b):
 
 
 def evaluate(root, detector=inspect):
+    rows = (root / "test.txt").read_text().splitlines()
+    if len(rows) != 500:
+        raise ValueError("expected official 500-board split")
+    return evaluate_rows(root, rows, detector)
+
+
+def evaluate_rows(root, rows, detector):
     tp = predictions = labels = rejected = missed_boards = 0
     best, intersections, ratios = [], [], []
     support, hits = np.zeros(6, int), np.zeros(6, int)
     unavailable_labels = 0
-    rows = (root / "test.txt").read_text().splitlines()
-    if len(rows) != 500:
-        raise ValueError("expected official 500-board split")
     for row in rows:
         sample, annotation = row.split()
         base = (root / sample).with_suffix("")
@@ -57,9 +61,9 @@ def evaluate(root, detector=inspect):
         labels += len(truth)
         rejected += result["status"] == "uninspectable"
         missed_boards += bool(truth) and result["status"] == "clear"
-    return dict(boards=len(rows), localized=tp, annotations=labels, predicted_boxes=predictions,
+    return dict(image_pairs=len(rows), localized=tp, annotations=labels, predicted_boxes=predictions,
                 precision=tp/max(1, predictions), recall=tp/max(1, labels), uninspectable=rejected,
-                defective_boards_called_clear=missed_boards, unavailable_labels=unavailable_labels,
+                defective_pairs_called_clear=missed_boards, unavailable_labels=unavailable_labels,
                 median_best_iou=float(np.median(best)), mean_overlapping_boxes=float(np.mean(intersections)),
                 median_best_box_area_ratio=float(np.median(ratios)) if ratios else None,
                 per_class={str(i+1):{"localized":int(hits[i]), "labels":int(support[i])} for i in range(6)})
