@@ -1,11 +1,11 @@
-name: Inspect and benchmark
+name: DeepPCB grouped audit
 on: [push, workflow_dispatch]
 permissions:
   contents: read
 jobs:
   benchmark:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,26 +21,9 @@ jobs:
           ref: 08e98c4db5922613fb97176eb3d6497d48260cb1
           path: dataset
           persist-credentials: false
-      - run: python evaluate.py dataset/PCBData | tee report.json
+      - run: python audit.py | tee deeppcb-audit.txt
         shell: bash
-      - run: cat report.json >> "$GITHUB_STEP_SUMMARY"
-      - run: python learned.py benchmark dataset/PCBData --model pcb.skops | tee learned-report.json
-        shell: bash
-      - run: cat learned-report.json >> "$GITHUB_STEP_SUMMARY"
-      - name: Measure original detector without additional registration
-        run: |
-          python - <<'PY'
-          import json
-          from functools import partial
-          from pathlib import Path
-          from evaluate import evaluate
-          from inspection import inspect
-          print(json.dumps(evaluate(Path("dataset/PCBData"), partial(inspect, register=False))))
-          PY
       - uses: actions/upload-artifact@v4
         with:
-          name: pcb-inspector
-          path: |
-            pcb.skops
-            report.json
-            learned-report.json
+          name: deeppcb-group-validation
+          path: deeppcb-audit.txt

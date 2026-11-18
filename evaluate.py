@@ -16,13 +16,17 @@ def iou(a, b):
 
 
 def evaluate(root, detector=inspect):
+    rows = (root / "test.txt").read_text().splitlines()
+    if len(rows) != 500:
+        raise ValueError("expected official 500-board split")
+    return evaluate_rows(root, rows, detector)
+
+
+def evaluate_rows(root, rows, detector):
     tp = predictions = labels = rejected = missed_boards = 0
     best, intersections, ratios = [], [], []
     support, hits = np.zeros(6, int), np.zeros(6, int)
     unavailable_labels = 0
-    rows = (root / "test.txt").read_text().splitlines()
-    if len(rows) != 500:
-        raise ValueError("expected official 500-board split")
     for row in rows:
         sample, annotation = row.split()
         base = (root / sample).with_suffix("")
