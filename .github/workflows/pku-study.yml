@@ -2,7 +2,7 @@ name: PKU grouped study
 on:
   push:
     branches: [study/pcb-dataset-2]
-    paths: ['studies/pku/**', '.github/workflows/pku-study.yml']
+    paths: ['studies/pku/**', '.github/workflows/pku-study.yml', 'requirements.txt']
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,7 +24,12 @@ jobs:
           echo 'e3afaf19c897816718978051b257570bb3a4876f9458bf9557f8a7eb38cb23d2  /tmp/pku.zip' | sha256sum -c
           unzip -q /tmp/pku.zip -d /tmp/pku
       - run: python studies/pku/release_model.py /tmp/pku results
-      - run: cp requirements.txt studies/pku/{detector.py,group_validation.py,study.py,coverage.py,USAGE.md} results/
+      - run: cp requirements.txt studies/pku/{detector.py,group_validation.py,study.py,coverage.py,quality.py,USAGE.md} results/
+      - name: Verify packaged CLI outside the checkout
+        run: |
+          cp -r results "$RUNNER_TEMP/pku-package"
+          cd "$RUNNER_TEMP/pku-package"
+          python "$GITHUB_WORKSPACE/studies/pku/check_package.py"
       - uses: actions/upload-artifact@v4
         with:
           name: pku-expanded-inspector

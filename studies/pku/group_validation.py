@@ -9,6 +9,7 @@ from sklearn.ensemble import ExtraTreesClassifier
 
 from coverage import objects, overlaps
 from study import inventory, metrics, proposals
+from quality import rejection_reason
 
 
 def expanded(boxes, width, height):
@@ -23,7 +24,8 @@ def prepare(root):
         if split == "test":
             continue
         query = cv2.imread(str(image), 0)
-        boxes, features = proposals(cv2.imread(str(ref), 0), query)
+        template = cv2.imread(str(ref), 0)
+        boxes, features = ([], []) if rejection_reason(template,query) else proposals(template,query)
         boxes = np.asarray(boxes).reshape(-1,4)
         truth = [target for _,target in objects(xml)]
         variants = {}
@@ -47,17 +49,19 @@ def fit(rows, name):
                                 random_state=19, n_jobs=2).fit(x,y)
 
 
-def run(root):
-    groups = prepare(root)
-    for name in ("original","expanded"):
+def validate(groups, variants):
+    reports = []
+    for name in variants:
         for holdout, held_rows in sorted(groups.items()):
             fitting = [r for g,rows in groups.items() if g != holdout for r in rows]
             model = fit(fitting,name)
             records = [(variants[name][0], model.predict_proba(features)[:,1] if len(features) else [], truth)
                        for features,truth,variants in held_rows]
-            print(json.dumps(dict(variant=name, held=holdout, threshold=.5, **metrics(records,.5))),flush=True)
+            reports.append(dict(variant=name, held=holdout, threshold=.5, **metrics(records,.5)))
+    return reports
 
 
 if __name__ == "__main__":
     cv2.setNumThreads(1)
-    run(Path(sys.argv[1]))
+    for record in validate(prepare(Path(sys.argv[1])), ("original","expanded")):
+        print(json.dumps(record))

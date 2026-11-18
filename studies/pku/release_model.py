@@ -10,13 +10,18 @@ import skops.io
 
 from coverage import objects
 from detector import THRESHOLD, predict
-from group_validation import fit, prepare
+from group_validation import fit, prepare, validate
 from study import inventory, metrics
 
 
 def run(root, output):
     output.mkdir(exist_ok=True, parents=True)
     groups = prepare(root)
+    folds = validate(groups, ("expanded",))
+    hits = sum(f["hits"] for f in folds)
+    grouped_f1 = 2*hits / sum(f["predictions"]+f["labels"] for f in folds)
+    if grouped_f1 < .76 or min(f["f1"] for f in folds) < .49:
+        raise RuntimeError(f"Grouped PKU regression: {grouped_f1=:.4f}, folds={folds}")
     model = fit([r for rows in groups.values() for r in rows], "expanded")
     model_path = output/"pku-expanded.skops"
     skops.io.dump(model,model_path)
@@ -37,13 +42,16 @@ def run(root, output):
 
     loaded = skops.io.load(model_path,trusted=[])
     by_template = {}
+    rejected = 0
     for key, split, ref, image, xml in rows:
         if split == "test":
             result = predict(loaded,ref,image)
+            rejected += result["status"] == "uninspectable"
             record = (result["boxes"],result["scores"],[box for _,box in objects(xml)])
             by_template.setdefault(key.split("_")[0],[]).append(record)
     report = dict(development_images=sum(map(len,groups.values())), development_groups=sorted(groups),
-                  decision_threshold=THRESHOLD, cli_parity=True,
+                  decision_threshold=THRESHOLD, cli_parity=True, historical_uninspectable=rejected,
+                  grouped_f1=grouped_f1, development_folds=folds,
                   historical_test=metrics([r for records in by_template.values() for r in records],THRESHOLD),
                   by_template={k:metrics(records,THRESHOLD) for k,records in by_template.items()})
     (output/"report.json").write_text(json.dumps(report,indent=2))
