@@ -1,0 +1,26 @@
+name: Inspect and benchmark
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.2.6 opencv-python-headless==4.12.0.88
+      - run: python -m unittest -v
+      - uses: actions/checkout@v4
+        with:
+          repository: tangsanli5201/DeepPCB
+          ref: 08e98c4db5922613fb97176eb3d6497d48260cb1
+          path: dataset
+          persist-credentials: false
+      - run: python evaluate.py dataset/PCBData | tee report.json
+        shell: bash
+      - run: cat report.json >> "$GITHUB_STEP_SUMMARY"
