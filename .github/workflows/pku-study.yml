@@ -20,7 +20,7 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Download dataset on runner
         run: |
-          curl -fLsS --retry 3 'https://api.kaggle.com/api/v1/datasets/download/akhatova/pcb-defects?datasetVersionNumber=1' -o /tmp/pku.zip
+          curl -fLsS --retry 3 'https://api.kaggle.com/v1/datasets/download/akhatova/pcb-defects' -o /tmp/pku.zip
           sha256sum /tmp/pku.zip
           unzip -q /tmp/pku.zip -d /tmp/pku
       - run: python studies/pku/study.py /tmp/pku results
@@ -28,3 +28,4 @@ jobs:
         with:
           name: pku-grouped-study
           path: results/
+
