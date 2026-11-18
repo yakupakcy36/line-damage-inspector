@@ -6,13 +6,14 @@ import cv2
 import numpy as np
 
 
-def inspect(reference, image):
+def inspect(reference, image, *, register=True):
     if (reference is None or image is None or reference.ndim != 2
             or reference.shape != image.shape or reference.dtype != np.uint8
             or image.dtype != np.uint8 or min(image.shape) < 32):
         raise ValueError("expected equally sized grayscale uint8 images, at least 32x32")
     h, w = image.shape
-    shift, score = cv2.phaseCorrelate(reference.astype(np.float32), image.astype(np.float32))
+    shift, score = (cv2.phaseCorrelate(reference.astype(np.float32), image.astype(np.float32))
+                    if register else ((0, 0), 1))
     if not np.isfinite([*shift, score]).all() or score < 0.25 or max(map(abs, shift)) > 8:
         return {"status": "uninspectable", "boxes": []}
     dx, dy = map(round, shift)

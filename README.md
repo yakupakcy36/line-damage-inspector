@@ -1,5 +1,9 @@
 # Line Damage Inspector
 
+The recommended detector learns to filter residual components and refine their bounding boxes from the official 1,000-board DeepPCB training split. It uses paired intensity and residual patches, two Extra Trees estimators and non-maximum suppression. Evaluation on the 500-board test split localized 2,941 of 3,140 annotations at 93.99% precision and 93.66% recall (class-agnostic IoU > 0.33). The initial connected-component baseline localized 93. The test split was previously inspected during development and contains defective boards. Independent healthy-board false reject rates and factory acceptance are open.
+
+Download the **pcb-inspector** artifact from a successful [hosted workflow](https://github.com/yakupakcy36/line-damage-inspector/actions/workflows/validate.yml). In a Python 3.12 environment with the versions in `requirements.txt`, run `python learned.py predict pcb.skops reference.jpg inspected.jpg`. Training, serialization, reload parity and official test-set evaluation run on the hosted runner. Use artifacts from a trusted workflow run. The simple baseline below remains available for comparison.
+
 Locate changes on a printed circuit board from a fixed overhead camera and a matching intact template. The inspector estimates translation, checks registration quality and compares binary copper patterns while tolerating one pixel of edge error. It returns candidate defect boxes in the inspected image's coordinates (right and bottom exclusive). A low registration score or displacement above eight pixels yields `uninspectable`.
 
 Run `python inspection.py reference.jpg inspected.jpg` with NumPy 2.2.6 and headless OpenCV 4.12.0.88. No trained weights or API credentials are needed. Read `excluded_border_px` before interpreting a clear result: the border has no reliable template overlap. Rotation, different PCB designs and changing camera scale are outside this first version's scope.

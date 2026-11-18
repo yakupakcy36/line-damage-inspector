@@ -90,11 +90,29 @@ def predict(models, reference, image):
 
 if __name__ == "__main__":
     import json
+    import skops.io as sio
     from evaluate import evaluate
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("dataset", type=Path)
+    commands = parser.add_subparsers(dest="command", required=True)
+    benchmark = commands.add_parser("benchmark")
+    benchmark.add_argument("dataset", type=Path)
+    benchmark.add_argument("--model", type=Path, required=True)
+    inference = commands.add_parser("predict")
+    inference.add_argument("model", type=Path)
+    inference.add_argument("reference")
+    inference.add_argument("image")
     args = parser.parse_args()
     cv2.setNumThreads(1)
-    models = train(args.dataset)
-    print(json.dumps(evaluate(args.dataset, detector=lambda r, i: predict(models, r, i)), indent=2))
+    if args.command == "predict":
+        models = sio.load(args.model, trusted=[])
+        print(json.dumps(predict(models, cv2.imread(args.reference, 0), cv2.imread(args.image, 0))))
+    else:
+        models = train(args.dataset)
+        sio.dump(models, args.model)
+        loaded = sio.load(args.model, trusted=[])
+        row = (args.dataset / "trainval.txt").read_text().splitlines()[0]
+        ref, image, _ = read_pair(args.dataset, row)
+        if predict(models, ref, image) != predict(loaded, ref, image):
+            raise RuntimeError("Reloaded model produced different detections")
+        print(json.dumps(evaluate(args.dataset, detector=lambda r, i: predict(loaded, r, i)), indent=2))
